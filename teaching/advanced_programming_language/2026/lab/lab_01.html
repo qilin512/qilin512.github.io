@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Lab 1 — C</title>
+  <style>
+    body { margin: 8px; background: white; color: black; font-family: "Times New Roman", Times, serif; font-size: 16px; }
+    main { max-width: 800px; padding: 0 3px; }
+    h1 { font-size: 2em; }
+    h2 { font-size: 1.5em; }
+    h3 { font-size: 1.17em; }
+    a:link { color: #0000ee; }
+    a:visited { color: #551a8b; }
+    .figures { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 24px; margin: 1em 0; }
+    figure { margin: 0; max-width: 100%; }
+    img { display: block; max-width: 100%; height: auto; }
+    figcaption { margin-top: 6px; font-size: 0.9em; }
+    li { margin: 0.3em 0; }
+    pre, code { font-family: "Courier New", Courier, monospace; }
+    pre { margin: 0.5em 0 1em; white-space: pre-wrap; }
+    @media print { .figures, figure, pre { break-inside: avoid; } h2, h3, h4 { break-after: avoid; } }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Lab 1: C</h1>
+  
+  <p>Please write the following two programs.</p>
+
+  <section aria-labelledby="vedic">
+    <h2 id="vedic">1. Vedic Square and Vedic Star</h2>
+    <h3>(1) Problem Description</h3>
+    <p>The Vedic Square is a 9 × 9 table originating in ancient Indian mathematics. It is similar to a multiplication table for the numbers 1 through 9, except that each cell contains the <b>digital root</b> of the product of its row and column numbers, rather than the product itself.</p>
+    <p>To find the digital root of a non-negative integer, add its digits together. Repeat this process with the resulting sum until only one digit remains. That digit is the digital root of the original number. For example:</p>
+    <ul>
+      <li>The digital root of 1 is 1.</li>
+      <li>The digital root of 10 is 1 (1 + 0 = 1).</li>
+      <li>The digital root of 21 is 3 (2 + 1 = 3).</li>
+      <li>The digital root of 48 is 3 (4 + 8 = 12; 1 + 2 = 3).</li>
+      <li>The digital root of 198 is 9 (1 + 9 + 8 = 18; 1 + 8 = 9).</li>
+    </ul>
+    <p><b>Note:</b> Adding 9 to a positive integer does not change its digital root. Every positive multiple of 9 has a digital root of 9.</p>
+    <p>The following images show the Vedic Square.</p>
+    <div class="figures">
+      <figure><!-- Insert the image filename or relative path into src below. -->
+      <img src="VedicSquare_console.jpg" alt="Vedic Square: a 9 by 9 table of digital roots, with row and column labels from 1 to 9." width="331" height="296"><figcaption>Vedic Square: console output.</figcaption></figure>
+      <figure><!-- Insert the image filename or relative path into src below. -->
+      <img src="VedicSquare_color.png" alt="The same Vedic Square, with matching digital roots shown in matching colors." width="277" height="279"><figcaption>Vedic Square: color-coded view.</figcaption></figure>
+    </div>
+    <h3>(2) Vedic Star</h3>
+    <p>The Vedic Square contains many geometric patterns and symmetries. Replace every occurrence of a particular digit with an asterisk (<code>*</code>) and all other digits with spaces. You will see a symmetric pattern emerge from the square.</p>
+    <h3>(3) Programming Task</h3>
+    <p>Write a program that first prints the Vedic Square and then prints the Vedic Star pattern for each digit from 1 through 9. The three examples below correspond to the digits 1, 2, and 3, respectively.</p>
+    <div class="figures">
+      <figure><!-- Insert the image filename or relative path into src below. -->
+      <img src="VedicStar_1.jpg" alt="Vedic Star for digit 1: asterisks mark all cells whose digital root is 1." width="228" height="197"><figcaption>Vedic Star for digit 1.</figcaption></figure>
+      <figure><!-- Insert the image filename or relative path into src below. -->
+      <img src="VedicStar_2.jpg" alt="Vedic Star for digit 2: asterisks mark all cells whose digital root is 2." width="225" height="197"><figcaption>Vedic Star for digit 2.</figcaption></figure>
+      <figure><!-- Insert the image filename or relative path into src below. -->
+      <img src="VedicStar_3.jpg" alt="Vedic Star for digit 3: asterisks mark all cells whose digital root is 3." width="236" height="197"><figcaption>Vedic Star for digit 3.</figcaption></figure>
+    </div>
+  </section>
+
+  <section aria-labelledby="elevator">
+    <h2 id="elevator">2. Elevator Problem</h2>
+    <h3>(1) Problem Description</h3>
+    <p>An elevator is instructed to visit <var>N</var> floors in a specified order. It takes 6 seconds to move up one floor and 4 seconds to move down one floor. At each requested floor, it stops for 5 seconds.</p>
+    <p>Given a sequence of requested floors, calculate the total time required. The elevator starts at floor 0. After completing the sequence, it remains at the last requested floor and does not need to return to floor 0.</p>
+    <h3>(2) Input</h3>
+    <p>The input is a sequence of <var>N</var> + 1 non-negative integers. The first integer, <var>N</var>, specifies the number of requested stops. The next <var>N</var> integers give the floors to visit, in order.</p>
+    <h3>(3) Output</h3>
+    <p>Print the total time, in seconds, required for the elevator to complete the sequence of stops.</p>
+    <h3>(4) Sample Input and Output</h3>
+    <h4>Example 1</h4>
+    <p><b>Input:</b></p>
+    <pre>1 2</pre>
+    <p><b>Output:</b></p>
+    <pre>17</pre>
+    <p>Explanation: 6 × 2 + 5 = 17 seconds.</p>
+    <h4>Example 2</h4>
+    <p><b>Input:</b></p>
+    <pre>3 2 3 1</pre>
+    <p><b>Output:</b></p>
+    <pre>41</pre>
+    <p>Explanation: 6 × 2 + 5 + 6 × 1 + 5 + 4 × 2 + 5 = 41 seconds.</p>
+  </section>
+</main>
+</body>
+</html>
