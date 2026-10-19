@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab 2 — Estimating Pi Using Random Sampling</title>
+<style>
+    body { margin: 8px; background: white; color: black; font-family: "Times New Roman", Times, serif; font-size: 16px; }
+    main { max-width: 800px; padding: 0 3px; }
+    h1 { font-size: 2em; }
+    h2 { font-size: 1.5em; }
+    h3 { font-size: 1.17em; }
+    a:link { color: #0000ee; }
+    a:visited { color: #551a8b; }
+    .figures { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 24px; margin: 1em 0; }
+    figure { margin: 0; max-width: 100%; }
+    img { display: block; max-width: 100%; height: auto; }
+    figcaption { margin-top: 6px; font-size: 0.9em; }
+    li { margin: 0.3em 0; }
+    pre, code { font-family: "Courier New", Courier, monospace; }
+    pre { margin: 0.5em 0 1em; white-space: pre-wrap; }
+    @media print { .figures, figure, pre { break-inside: avoid; } h2, h3, h4 { break-after: avoid; } }
+  
+    .equation { margin: 1.25em 0; }
+    pre { overflow-wrap: anywhere; }
+</style>
+</head>
+<body><main>
+<h1>Lab 2: Estimating π Using Random Sampling</h1>
+
+<section aria-labelledby="objectives">
+<h2 id="objectives">1. Objectives</h2>
+<p>Practice nested loops, conditional statements, cumulative counters, type conversion, and floating-point calculations in C. Use random sampling to estimate π and observe how the result varies with the sample size and random seed.</p>
+</section>
+
+<section aria-labelledby="task">
+<h2 id="task">2. Experimental Task</h2>
+<p>Consider a square with an inscribed circle of radius <var>R</var>. The square has side length 2<var>R</var>, so the ratio of the circle’s area to the square’s area is:</p>
+<p class="equation" aria-label="Area of the circle divided by area of the square equals pi R squared divided by 4 R squared equals pi divided by 4."><var>A</var><sub>circle</sub> / <var>A</var><sub>square</sub> = π<var>R</var><sup>2</sup> / (4<var>R</var><sup>2</sup>) = π / 4</p>
+<p>If a large number of points are sampled uniformly at random within the square, the proportion that fall inside the circle approximates this area ratio. Multiplying that proportion by 4 gives an estimate of π.</p>
+<figure>
+<!-- Insert the image filename or relative path into src below. -->
+<img src="pi.png" alt="Random points sampled within a square containing an inscribed circle.">
+<figcaption>Random sampling in a square with an inscribed circle.</figcaption>
+</figure>
+
+<h3>Algorithm: Fixed Sample Budget</h3>
+<p>This is a simple <b>Monte Carlo method</b>: it estimates a quantity using random samples. Use the square [−1, 1] × [−1, 1] and the unit circle centered at the origin. A point (<var>x</var>, <var>y</var>) is inside or on the circle if <var>x</var><sup>2</sup> + <var>y</var><sup>2</sup> ≤ 1. No square-root calculation is needed.</p>
+<p>Choose two positive integers before sampling: <var>N</var>, the number of points per batch, and <var>K</var>, the number of batches. Start with <var>N</var> = 1,000 and <var>K</var> = 100. Generate exactly <var>K</var> batches, for a total of <var>T</var> = <var>N</var> × <var>K</var> points. You may set these values as constants in your program; keyboard input is not required.</p>
+<p>In each batch, generate <var>N</var> random points and count how many fall inside the circle. Add the new counts to the cumulative totals, then recompute the estimate using all points generated so far. Keep the cumulative counters across batches; reset only a batch-specific counter, if you use one.</p>
+<p>Let <var>M</var><sub>k</sub> be the number of points inside the circle in round <var>k</var>. The successive estimates are:</p>
+<ul>
+<li>After round 1: <var>p</var><sub>1</sub> = 4<var>M</var><sub>1</sub> / <var>N</var>.</li>
+<li>After round 2: <var>p</var><sub>2</sub> = 4(<var>M</var><sub>1</sub> + <var>M</var><sub>2</sub>) / (2<var>N</var>).</li>
+<li>After round 3: <var>p</var><sub>3</sub> = 4(<var>M</var><sub>1</sub> + <var>M</var><sub>2</sub> + <var>M</var><sub>3</sub>) / (3<var>N</var>).</li>
+</ul>
+<p>After each batch, print the batch number, cumulative number of sampled points, and current estimate of π. Stop after exactly <var>K</var> batches and print the final estimate. Do not stop based on the difference between consecutive estimates.</p>
+<p>More samples generally improve the estimate, but an individual update can move it farther from π. No particular number of correct decimal places is guaranteed. Dividing the samples into batches lets you observe progress; all previously sampled points still contribute to the estimate.</p>
+
+<h3>Pseudocode</h3>
+<p>Initialize both cumulative counters and the batch counter to zero. Compute the first estimate only after generating the first batch, so that the total sample count is nonzero.</p>
+<pre><code>Choose positive integers N (points per batch) and K (number of batches)
+Initialize the random number generator once
+Set total_points and total_inside to 0
+Set batch to 0
+
+while batch &lt; K
+    Generate N random points
+    Count the M points that lie inside the circle
+    Add N to total_points
+    Add M to total_inside
+    Calculate the estimate of pi from the cumulative counts
+    Increase batch by 1
+    Output the batch number, total_points, and current estimate
+end while
+
+Output the final estimate of pi</code></pre>
+<p>Your program should:</p>
+<ol>
+<li>Use <code>while</code> and <code>for</code> loops appropriately.</li>
+<li>Use an outer <code>while</code> loop for exactly <var>K</var> batches and an inner <code>for</code> loop for exactly <var>N</var> points per batch.</li>
+<li>Be checked with step-by-step debugging.</li>
+<li>Account for the ranges of the variables used, especially the cumulative counters.</li>
+</ol>
+
+<h3>Hints</h3>
+<ol>
+<li><p>In <code>main</code>, seed the random number generator once, before entering the loops. Start with <code>srand(1);</code> so that you can reproduce a run while debugging. Include <code>&lt;stdlib.h&gt;</code> for <code>srand()</code> and <code>rand()</code>. Change the seed for the repeated experiments below; do not reseed inside either loop.</p></li>
+<li><p>The C library function <code>rand()</code> returns an integer in the inclusive range [0, <code>RAND_MAX</code>]. The macro <code>RAND_MAX</code> specifies its maximum possible return value. Use a cast and scaling to convert the result to a floating-point value in the desired range. For example:</p>
+<pre><code>double d = (double)rand() / (double)RAND_MAX; /* 0.0 &lt;= d &lt;= 1.0 */</code></pre>
+<p>Convert <code>d</code> to a coordinate in [−1, 1] using <code>2.0 * d - 1.0</code>. Call <code>rand()</code> separately for each coordinate; do not reuse the same random value for both <var>x</var> and <var>y</var>.</p>
+<p>Use floating-point arithmetic when computing the estimate of π as well, so that integer division does not discard the fractional part. Additional details about pseudorandom numbers appear below.</p></li>
+<li><p>Use <code>long long</code> for cumulative point counts and <code>double</code> for coordinates and estimates. Print a <code>long long</code> with <code>%lld</code> and an estimate with, for example, <code>%.6f</code>. Printing six decimal places does not mean that all six are accurate. If you calculate the sample budget from integer variables, use <code>1LL * N * K</code> to perform the multiplication as <code>long long</code>.</p></li>
+</ol>
+
+<h3>C Program Outline</h3>
+<p>Complete the following outline by adding the variables, loops, calculations, and output statements.</p>
+<pre><code>#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;time.h&gt;
+
+int main(void)
+{
+    const int N = 1000;  /* Points per batch. */
+    const int K = 100;   /* Number of batches. */
+    const unsigned int seed = 1;
+
+    /* Declare and initialize the counters and other variables. */
+    /* Use long long for cumulative point counts and double for estimates. */
+    srand(seed);
+
+    /* TODO: Write an outer while loop that processes exactly K batches. */
+    /* TODO: Inside it, write a for loop that generates N points. */
+
+    /* For each point: generate x and y in [-1, 1]. */
+    /* Test whether x*x + y*y &lt;= 1.0 and update the counts. */
+
+    /* After each batch: calculate pi using all points generated so far. */
+    /* Print the batch number, cumulative sample count, and estimate. */
+    /* Remember to advance the outer-loop counter. */
+
+    /* Use printf() to display the final estimate of pi. */
+    return 0;
+}</code></pre>
+</section>
+
+<section aria-labelledby="requirements">
+<h2 id="requirements">3. Requirements</h2>
+<h3>Programming and Debugging</h3>
+<p>Complete the C program outline. Display <var>N</var>, <var>K</var>, and the seed at the start of each run, the progress after every batch, and the final estimate. Your output values may differ across C library implementations; there is no single required numerical result.</p>
+<p>First debug a small run with <var>N</var> = 5 and <var>K</var> = 2. Step through the loops and inspect the coordinates and counters. Check that the final total is 10, the inside count never exceeds the total, and each estimate is between 0 and 4. Then use the larger settings below.</p>
+<h3>Experiment A: Sample Size and Random Variation</h3>
+<p>Keep <var>N</var> = 1,000. Try <var>K</var> = 10, 100, and 1,000, giving total sample sizes of 10,000, 100,000, and 1,000,000. For each setting, run the program with seeds 1, 2, 3, 4, and 5. This produces 15 runs. Record each final estimate and its absolute error in a table with columns for <var>N</var>, <var>K</var>, total points, seed, estimate, and absolute error.</p>
+<p>For evaluating the results only, use 3.141592653589793 as a reference value. Calculate the absolute error as <code>fabs(estimate - 3.141592653589793)</code> with <code>&lt;math.h&gt;</code>, or calculate it separately after the run. Do not use the reference value to generate samples, calculate the estimate, or control the loops.</p>
+<p>For each total sample size, calculate the mean absolute error across the five runs. Discuss whether larger samples generally reduce the error, whether every run improves, and whether each batch moves the estimate closer to π. Five runs illustrate variation; they do not establish a guaranteed accuracy.</p>
+<h3>Experiment B: Batch Size versus Total Sample Size</h3>
+<p>Keep the total at 100,000 points and the seed at 1. Compare (<var>N</var>, <var>K</var>) = (100, 1,000), (1,000, 100), and (10,000, 10). Generate each point in the same order, calling <code>rand()</code> exactly twice per point, with no other random-number calls.</p>
+<p>Compare the final estimates and the number of progress lines printed. With the same implementation and seed, these runs should use the same points and produce the same final estimate. Explain why changing the batch size alone does not improve the final accuracy when the total sample size is fixed.</p>
+<h3>Discussion: Does a Stable Estimate Mean an Accurate Estimate?</h3>
+<p>Suppose the first batch contains 10 points, of which 8 lie inside the circle. The second batch also contains 10 points, of which 8 lie inside. Calculate the cumulative estimate after each batch and the difference between the two estimates. Would stopping when that difference is below 0.01 guarantee an absolute error below 0.01? Explain why or why not.</p>
+<h3>What to Submit</h3>
+<ul>
+<li>Your completed C source file.</li>
+<li>The results table for Experiment A and a comparison of the three runs in Experiment B.</li>
+<li>Brief answers to the experiment questions and the discussion question.</li>
+</ul>
+</section>
+
+<section aria-labelledby="random">
+<h2 id="random">4. Additional Notes on Pseudorandom Numbers in C</h2>
+<p>The C standard library provides <code>rand()</code> to generate pseudorandom integers in the inclusive range [0, <code>RAND_MAX</code>]. Include <code>&lt;stdlib.h&gt;</code> to use <code>rand()</code>, <code>srand()</code>, and <code>RAND_MAX</code>.</p>
+<p>For a positive integer <var>n</var>, the expression <code>rand() % n</code> produces an integer between 0 and <var>n</var> − 1. This is a simple way to restrict the range, but the outcomes may not be equally likely because of modulo bias. For this exercise, generate floating-point coordinates using the scaling method shown above.</p>
+<p>The numbers returned by <code>rand()</code> are pseudorandom: they follow a deterministic sequence that appears random. A seed initializes that sequence. The same seed reproduces the same sequence on the same implementation. If you do not call <code>srand()</code>, the generator behaves as though it had been seeded with 1.</p>
+<p>Use the specified fixed seeds for the experiments so that results can be reproduced. For additional exploration, you may instead include <code>&lt;time.h&gt;</code> and call <code>srand((unsigned int)time(NULL))</code> once at the start. Runs started within the same second may receive the same seed.</p>
+<pre><code>srand(1);  /* Seed once, before the loop. */
+
+for (int i = 0; i &lt; 5; i++) {
+    printf(&quot;%d\n&quot;, rand());
+}</code></pre>
+<p>This fragment prints five pseudorandom integers; values may repeat. Run it twice with seed 1, then change the seed to 2 and compare the sequences. Reproducibility applies to the same random-number implementation; different systems may produce different sequences.</p>
+</section>
+</main></body>
+</html>
