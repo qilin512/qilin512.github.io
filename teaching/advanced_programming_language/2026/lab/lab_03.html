@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Assignment 3 — Functions and Array Sorting</title>
+<style>
+    body { margin: 8px; background: white; color: black; font-family: "Times New Roman", Times, serif; font-size: 16px; }
+    main { max-width: 800px; padding: 0 3px; }
+    h1 { font-size: 2em; }
+    h2 { font-size: 1.5em; }
+    h3 { font-size: 1.17em; }
+    a:link { color: #0000ee; }
+    a:visited { color: #551a8b; }
+    .figures { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 24px; margin: 1em 0; }
+    figure { margin: 0; max-width: 100%; }
+    img { display: block; max-width: 100%; height: auto; }
+    figcaption { margin-top: 6px; font-size: 0.9em; }
+    li { margin: 0.3em 0; }
+    pre, code { font-family: "Courier New", Courier, monospace; }
+    pre { margin: 0.5em 0 1em; white-space: pre-wrap; }
+    @media print { .figures, figure, pre { break-inside: avoid; } h2, h3, h4 { break-after: avoid; } }
+  
+    .equation { margin: 1.25em 0; }
+    pre { overflow-wrap: anywhere; }
+</style>
+</head>
+<body><main>
+<h1>Assignment 3: Functions and Array Sorting</h1>
+
+<section aria-labelledby="objectives">
+<h2 id="objectives">1. Objectives</h2>
+<ul>
+<li>Practice defining and calling functions in C.</li>
+<li>Practice passing arrays and their lengths to functions.</li>
+<li>Explore three unusual sorting methods: monkey sort, bead sort, and spaghetti sort.</li>
+</ul>
+</section>
+
+<section aria-labelledby="input">
+<h2 id="input">2. Reading Array Data</h2>
+<h3>2.1 Required: Keyboard Input in the Terminal</h3>
+<p>Start your program, then type or paste the array data into the terminal. This is standard input during program execution; command-line arguments are not required.</p>
+<p>Enter the number of elements, <var>n</var>, followed by <var>n</var> integers separated by spaces or line breaks. For example:</p>
+<pre>5
+3 1 4 1 2</pre>
+<p>The first number specifies the array length and is not an array element. This example contains five elements, including two occurrences of 1. The expected ascending result is:</p>
+<pre>1 1 2 3 4</pre>
+<p>For this assignment, use a fixed-size array with a capacity of 20 elements. Accept lengths from 1 to 20 and element values from 1 to 20. These limits keep the two-dimensional bead representation small and avoid dynamic memory allocation. Use at most 8 elements when testing monkey sort.</p>
+
+<h3>2.2 Optional Extension: Input from a Text File</h3>
+<p><b>File input is optional.</b> Complete the terminal-input version first. Students who have already studied file operations may add a file-input version; file handling is not needed to complete the required assignment.</p>
+<p>Store the same data in a text file named <code>array.txt</code>. Put the array length on the first line and the space-separated array elements on the second line, using the format shown above.</p>
+<figure>
+<img src="array_txt.jpg" alt="Example of a text file storing an array length and its elements.">
+<figcaption>Optional file-input example.</figcaption>
+</figure>
+<p>Both input methods should produce the same array and length. The sorting functions should not depend on how the data was read.</p>
+</section>
+
+<section aria-labelledby="functions">
+<h2 id="functions">3. Organizing the Program with Functions</h2>
+<p>Implement each sorting method in a separate function. Use helper functions to print an array, check whether it is sorted, and rearrange elements. For example, you may use these declarations:</p>
+<pre><code>void print_array(const int a[], int n);
+int is_sorted(const int a[], int n);  /* 1 if sorted, 0 otherwise. */
+void shuffle_array(int a[], int n);
+int monkey_sort(int a[], int n, int max_attempts); /* 1 on success, 0 on failure. */
+void bead_sort(int a[], int n);
+void spaghetti_sort(int a[], int n);</code></pre>
+<p>Pass the length explicitly: an array parameter does not tell a function how many elements the caller supplied. Changes to array elements inside a sorting function affect the caller's array.</p>
+<p>All three sorting methods must produce <b>nondecreasing order</b>, allowing equal adjacent values. Keep the original input and make a fresh copy before testing each method, so that every method starts with the same unsorted data. Copy elements with a loop; do not use array assignment.</p>
+</section>
+
+<section aria-labelledby="monkey">
+<h2 id="monkey">4. Monkey Sort</h2>
+<h3>4.1 Idea</h3>
+<p>The familiar thought experiment of a monkey typing at random suggests that, given enough attempts, a meaningful text might eventually appear. Monkey sort, also known as bogosort, uses a similar idea: rearrange the array randomly and check whether it happens to be sorted.</p>
+<figure>
+<img src="monkey_sort.png" alt="Illustration of monkey sort.">
+<figcaption>Monkey sort: rearrange and check.</figcaption>
+</figure>
+<p>This is deliberately inefficient. It is useful here for practicing functions, random numbers, and array operations, not as a practical sorting algorithm. A finite run is not guaranteed to succeed.</p>
+<h3>4.2 Random Rearrangement in C</h3>
+<p>One simple approach is to choose two array indices at random, swap their elements, and repeat this operation several times. For this exercise, let <code>shuffle_array()</code> perform <code>n</code> such swaps per call. The indices may be equal. This rearrangement is sufficient for the exercise, but it does not guarantee that all permutations are equally likely.</p>
+<p>The function <code>rand()</code> from <code>&lt;stdlib.h&gt;</code> returns a pseudorandom integer between 0 and <code>RAND_MAX</code>, inclusive. For positive <code>n</code>, <code>rand() % n</code> produces a valid index from 0 to <code>n - 1</code>. This simple mapping can have a small bias; it is acceptable for this introductory exercise.</p>
+<p>Initialize the generator once in <code>main</code>, before sorting. Use a fixed seed while debugging:</p>
+<pre><code>#include &lt;stdlib.h&gt;
+
+/* Inside main, before calling monkey_sort: */
+srand(1);</code></pre>
+<p>The same seed reproduces the same sequence on the same implementation. To explore different runs, change the seed. Alternatively, include <code>&lt;time.h&gt;</code> and use <code>srand((unsigned int)time(NULL));</code>. Runs started within the same second may use the same seed. Do not reseed inside the shuffle function or sorting loop, and do not assume that random values are always distinct.</p>
+<h3>4.3 Programming Task</h3>
+<ol>
+<li>Implement <code>is_sorted()</code> by comparing adjacent elements. An array with one element is already sorted.</li>
+<li>Implement <code>shuffle_array()</code> using swaps. Preserve every original element, including duplicates.</li>
+<li>Check whether the array is sorted before shuffling. If it is not, shuffle and check again.</li>
+<li>Count shuffle attempts and stop after at most 100,000 attempts. Return success if the array is sorted, including after the last permitted attempt; otherwise report that the attempt limit was reached. Do not label an unsorted result as sorted.</li>
+</ol>
+<p>Begin with 3-5 elements and test at most 8. If a longer array is entered, skip monkey sort with an explanatory message and still run the other two methods. The attempt limit is a runtime safeguard, not a guarantee of success.</p>
+</section>
+
+<section aria-labelledby="bead">
+<h2 id="bead">5. Bead Sort</h2>
+<h3>5.1 Idea</h3>
+<p>Imagine beads arranged on vertical rods, like an abacus. Each horizontal row represents one positive integer: the number of beads in that row is the integer’s value.</p>
+<figure>
+<img src="beads_before.png" alt="Beads arranged in rows on rods before falling.">
+<figcaption>Beads before gravity is applied.</figcaption>
+</figure>
+<p>If the beads can slide freely, gravity makes them fall to the bottom of each rod.</p>
+<figure>
+<img src="beads_after.png" alt="Beads settled at the bottoms of the rods.">
+<figcaption>Beads after gravity is applied.</figcaption>
+</figure>
+<p>After the beads settle, counting the beads in each row from top to bottom gives the original values in nondecreasing order. The following figures compare the row counts before and after the fall.</p>
+<div class="figures"><figure>
+<img src="row_counts_before.png" alt="Row counts before the beads fall.">
+<figcaption>Row counts before the fall.</figcaption>
+</figure><figure>
+<img src="row_counts_after.png" alt="Row counts after the beads fall.">
+<figcaption>Row counts after the fall.</figcaption>
+</figure></div>
+<h3>5.2 Programming Task</h3>
+<ol>
+<li>Find the largest array value, <var>m</var>. Use a fixed <code>int beads[20][20]</code> array initialized to zero; only the first <code>n</code> rows and first <var>m</var> columns are active.</li>
+<li>Represent input value <code>a[i]</code> by placing 1s in the first <code>a[i]</code> columns of row <code>i</code>. The remaining cells contain 0s.</li>
+</ol>
+<figure>
+<img src="beads_representation.png" alt="An integer array represented by a grid of zeros and ones.">
+<figcaption>Represent each value as a row of beads.</figcaption>
+</figure>
+<p>Simulate gravity independently in each active column. Count the number of 1s, clear that column, and place the same number of 1s in its bottommost rows. Treat row 0 as the top and row <code>n - 1</code> as the bottom.</p>
+<figure>
+<img src="beads_gravity.png" alt="Ones moved to the bottom of each grid column.">
+<figcaption>Move the beads to the bottom of each column.</figcaption>
+</figure>
+<p>Finally, count the 1s in each row from top to bottom and write these counts back into the one-dimensional array.</p>
+<figure>
+<img src="row_counts_sorted.png" alt="Row sums converted back to a sorted one-dimensional array.">
+<figcaption>Read the sorted values from top to bottom.</figcaption>
+</figure>
+<p>Implement this procedure in <code>bead_sort()</code>. Do not replace it with another sorting algorithm. The positive-integer input restriction and maximum value of 20 keep the representation within the allocated array.</p>
+</section>
+
+<section aria-labelledby="spaghetti">
+<h2 id="spaghetti">6. Spaghetti Sort</h2>
+<h3>6.1 Idea</h3>
+<p>Imagine a bundle of rigid spaghetti strands of different lengths standing upright on a table, with their lower ends aligned. Lower your hand from above. It first touches the longest strand. Remove that strand and continue downward to find the next longest, and so on.</p>
+<h3>6.2 Programming Task</h3>
+<p>Represent the hand's height with an integer variable initialized to the largest array value. At each height, scan the input array and collect <b>every</b> element equal to that height. Then decrease the height by 1 and repeat until height 1 has been processed.</p>
+<p>The values are found from largest to smallest. To produce ascending output, place them into a separate result array starting at index <code>n - 1</code> and moving toward index 0. Copy the result back to the input array after the scans are complete. Do not overwrite input values while you are still scanning them. Be sure to preserve duplicate values.</p>
+<p>Implement the procedure in <code>spaghetti_sort()</code>. Consider why this method may do unnecessary work when the largest value is much larger than the number of elements.</p>
+</section>
+
+<section aria-labelledby="requirements">
+<h2 id="requirements">7. Testing and Submission</h2>
+<p>Submit your C source code and a short record of your tests. The required program must accept terminal input, call the sorting functions, and clearly label each method's output. File input is an optional extension.</p>
+<p>Test at least the following cases:</p>
+<ul>
+<li>A single element.</li>
+<li>An already sorted array and a reverse-sorted array.</li>
+<li>An array containing duplicates, such as <code>3 1 4 1 2</code>, and an array with all values equal.</li>
+<li>A 20-element array containing the maximum allowed value, 20, for bead sort and spaghetti sort; skip monkey sort for this input.</li>
+<li>Invalid input, such as a length of 0 or 21, an out-of-range element, or nonnumeric input.</li>
+</ul>
+<p>For every successful sort, check both that the result is nondecreasing and that it contains exactly the original elements with the same counts. While debugging monkey sort, temporarily use a small attempt limit to check the failure-reporting path.</p>
+<p>Briefly discuss why monkey sort is unreliable for large arrays, how the largest element affects bead sort's storage needs, and why spaghetti sort can be slow for large values.</p>
+</section>
+</main></body>
+</html>
