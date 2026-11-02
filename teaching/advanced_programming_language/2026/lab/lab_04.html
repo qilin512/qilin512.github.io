@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab 4 — Pointers, Aliasing, and In-place Reversal</title>
+<style>
+body { margin: 8px; background: white; color: black; font-family: "Times New Roman", Times, serif; font-size: 16px; }
+main { max-width: 800px; padding: 0 3px; }
+h1 { font-size: 2em; }
+h2 { font-size: 1.5em; }
+h3 { font-size: 1.17em; }
+li { margin: 0.3em 0; }
+pre, code { font-family: "Courier New", Courier, monospace; }
+pre { margin: 0.75em 0 1em; white-space: pre-wrap; overflow-wrap: anywhere; }
+table { border-collapse: collapse; margin: 1em 0; width: 100%; }
+th, td { border: 1px solid #808080; padding: 7px; text-align: left; vertical-align: top; }
+th { background: #ffffcc; }
+.table-scroll { overflow-x: auto; }
+@media print { pre, tr { break-inside: avoid; } h2, h3 { break-after: avoid; } thead { display: table-header-group; } }
+</style>
+</head>
+<body>
+<main>
+<h1>Lab 4: Pointers, Aliasing, and In-place Reversal</h1>
+
+<p>In this lab, you will investigate how pointers refer to objects, test a swap function that appears to work, and build a function that reverses part of an array in place. Your explanations and test cases matter as much as your final output.</p>
+
+<h2>1. Objectives and Lab Workflow</h2>
+<ul>
+<li>Distinguish a pointer variable from the object it points to.</li>
+<li>Explain aliasing: two or more pointers referring to the same object.</li>
+<li>Use pointer parameters to modify the caller’s data.</li>
+<li>Pass an array segment to a function using a starting address and a length.</li>
+<li>Distinguish address equality, equal contents, and permission to modify data.</li>
+</ul>
+<p>Use C throughout. This lab does not require dynamic memory allocation, file input, arrays of pointers, or pointers to pointers. For each investigation, <b>predict first, run or debug second, and explain any difference</b>. Keep your original predictions in your notes.</p>
+<table>
+<thead><tr><th>Activity</th><th>Time</th></tr></thead>
+<tbody>
+<tr><td>Trace pointers and shared access</td><td>15 minutes</td></tr>
+<tr><td>Investigate and repair a swap function</td><td>25 minutes</td></tr>
+<tr><td>Implement and test partial array reversal</td><td>40 minutes</td></tr>
+<tr><td>Discuss strings and <code>const</code></td><td>20 minutes</td></tr>
+<tr><td>Check results and summarize findings</td><td>10 minutes</td></tr>
+</tbody>
+</table>
+<p><b>Working with addresses:</b> The lecture uses a 32-bit model for address exercises. Your actual environment may use a different pointer size. Measure it with <code>sizeof</code>; do not assume that every machine uses four-byte pointers. Print object-pointer addresses with <code>%p</code> and a conversion to <code>void *</code>, for example:</p>
+<pre><code>printf("p = %p, sizeof p = %zu\n", (void *)p, sizeof(p));</code></pre>
+<p>Exact address values can differ between runs. Focus on which object an address identifies.</p>
+
+<h2>2. Investigation A: Two Pointers, One Object</h2>
+<p>Place this fragment in a small C program. Before running it, predict the array contents and the element to which each pointer refers after every statement.</p>
+<pre><code>int a[] = {10, 20, 30, 40};
+int *p = a;
+int *q = p;
+
+*p = 11;
+p++;
+*q = *p + 1;
+q = p;
+(*q)++;</code></pre>
+<p>Copy and complete the following table. Identify pointer targets as <code>a[0]</code>, <code>a[1]</code>, and so on, rather than guessing numerical addresses.</p>
+<div class="table-scroll"><table>
+<thead><tr><th>State</th><th>Array contents</th><th><code>p</code> points to</th><th><code>q</code> points to</th></tr></thead>
+<tbody>
+<tr><td>After initialization</td><td>10, 20, 30, 40</td><td>a[0]</td><td>a[0]</td></tr>
+<tr><td>After <code>*p = 11;</code></td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>
+<tr><td>After <code>p++;</code></td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>
+<tr><td>After <code>*q = *p + 1;</code></td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>
+<tr><td>After <code>q = p;</code></td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>
+<tr><td>After <code>(*q)++;</code></td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>
+</tbody></table></div>
+<p>Use breakpoints and single stepping to inspect <code>a</code>, <code>p</code>, <code>q</code>, <code>*p</code>, and <code>*q</code>. Alternatively, print the state after each statement.</p>
+<p><b>Discuss:</b></p>
+<ol>
+<li>When <code>p</code> moves, does <code>q</code> move too? Explain using two pointer variables and their targets.</li>
+<li>Does <code>q = p</code> copy an integer from the array, or does it copy an address?</li>
+<li>How do <code>(*q)++</code> and <code>q++</code> differ?</li>
+</ol>
+<p><b>Checkpoint:</b> Draw the pointer relationships after <code>p++</code> and after <code>q = p</code>. Be ready to explain both drawings.</p>
+
+<h2>3. Investigation B: Does This Swap Always Work?</h2>
+<p>The following function uses arithmetic to exchange two integers. Treat it as code under review, not as a trusted helper.</p>
+<pre><code>void swap_arithmetic(int *a, int *b)
+{
+    *a = *a + *b;
+    *b = *a - *b;
+    *a = *a - *b;
+}</code></pre>
+<h3>3.1 Construct Counterexamples</h3>
+<p>Start each case with freshly initialized variables. Predict the result before testing.</p>
+<table>
+<thead><tr><th>Case</th><th>Initial state and call</th><th>Question</th></tr></thead>
+<tbody>
+<tr><td>Different values</td><td><code>x = 3; y = 8;</code><br><code>swap_arithmetic(&amp;x, &amp;y);</code></td><td>Does the usual case work?</td></tr>
+<tr><td>Equal values, different objects</td><td><code>x = 5; y = 5;</code><br><code>swap_arithmetic(&amp;x, &amp;y);</code></td><td>Does equal content cause a problem?</td></tr>
+<tr><td>The same object twice</td><td><code>x = 5;</code><br><code>swap_arithmetic(&amp;x, &amp;x);</code></td><td>What changes when both pointers identify one object?</td></tr>
+<tr><td>Large values</td><td><code>x = INT_MAX; y = 1;</code><br><code>swap_arithmetic(&amp;x, &amp;y);</code></td><td>Can every intermediate result be represented as an <code>int</code>?</td></tr>
+</tbody></table>
+<p>For the third case, step through each assignment and record the value of <code>x</code>. For the fourth case, include <code>&lt;limits.h&gt;</code> and reason about the range before execution. Signed integer overflow is undefined behavior in C: there is no required numerical result. A value observed in one run is not a guarantee, and running the overflowing case is not required.</p>
+<h3>3.2 Repair the Function</h3>
+<p>Implement:</p>
+<pre><code>void swap_int(int *a, int *b);</code></pre>
+<p>Both arguments must point to valid, writable <code>int</code> objects. Your function must exchange their values when the addresses differ and preserve the value when both arguments point to the same object. Use a temporary integer; do not rely on arithmetic swapping.</p>
+<p>Now inspect this second attempted solution:</p>
+<pre><code>void swap_attempt(int *a, int *b)
+{
+    int *temp = a;
+    a = b;
+    b = temp;
+}</code></pre>
+<p><b>Discuss:</b> Does this function exchange the caller’s integers? Which objects do its assignments actually modify? Explain why C’s pass-by-value rule still applies when parameters are pointers.</p>
+<p><b>Checkpoint:</b> Show a failing test for <code>swap_arithmetic()</code> and the corresponding successful test for <code>swap_int()</code>. Explain the difference between equal values and equal addresses.</p>
+
+<h2>4. Main Task: Reverse Part of an Array</h2>
+<p>Implement a reusable function that reverses a contiguous segment in place:</p>
+<pre><code>void reverse_segment(int *first, int count);</code></pre>
+<p><code>first</code> identifies the beginning of the segment, and <code>count</code> is its number of elements. The function does not receive the original array’s total length or the segment’s starting index.</p>
+<h3>4.1 Function Contract</h3>
+<ul>
+<li><code>count</code> is nonnegative. For a nonempty segment, the caller provides a valid range of <code>count</code> writable integers.</li>
+<li>For this lab, an empty segment may start at any element or at the position just past the end of the array. Do not dereference that position. Null-pointer handling is not required.</li>
+<li>For <code>count</code> equal to 0 or 1, leave the data unchanged.</li>
+<li>Use your repaired <code>swap_int()</code>. Do not allocate a second array.</li>
+<li>Do not modify any element outside the selected segment.</li>
+</ul>
+<p>You may control the loop using integer positions and construct addresses for the swap calls. A two-pointer implementation is an optional alternative. Handle an empty segment before constructing a pointer to its last element: <code>first + count - 1</code> is not a valid general way to initialize an empty range.</p>
+<h3>4.2 Input and Expected Behavior</h3>
+<p>Use a fixed capacity of 20 integers. Read <code>n</code>, then <code>n</code> array elements, then a zero-based starting index and a count. For example:</p>
+<pre>7
+10 20 30 40 50 60 70
+2 3</pre>
+<p>Expected output:</p>
+<pre>Before: 10 20 30 40 50 60 70
+After:  10 20 50 40 30 60 70</pre>
+<p>The call for this example is <code>reverse_segment(a + 2, 3)</code>. The two elements before the segment and the two after it must remain unchanged.</p>
+<h3>4.3 Starter Program</h3>
+<p>The input, output, and range checks are provided so that you can focus on the pointer functions. Complete the two function bodies. The initial template compiles but does not yet perform any reversal.</p>
+<pre><code>#include &lt;stdio.h&gt;
+
+#define CAPACITY 20
+
+void swap_int(int *a, int *b)
+{
+    /* TODO: Exchange the pointed-to values using a temporary int. */
+}
+
+void reverse_segment(int *first, int count)
+{
+    /* TODO: Reverse this segment using swap_int(). */
+}
+
+void print_array(const int *a, int n)
+{
+    for (int i = 0; i &lt; n; i++) {
+        printf("%s%d", i == 0 ? "" : " ", a[i]);
+    }
+    printf("\n");
+}
+
+int main(void)
+{
+    int a[CAPACITY];
+    int n, start, count;
+
+    if (scanf("%d", &amp;n) != 1 || n &lt; 1 || n &gt; CAPACITY) {
+        printf("Invalid array length.\n");
+        return 1;
+    }
+    for (int i = 0; i &lt; n; i++) {
+        if (scanf("%d", &amp;a[i]) != 1) {
+            printf("Invalid array element.\n");
+            return 1;
+        }
+    }
+    if (scanf("%d %d", &amp;start, &amp;count) != 2) {
+        printf("Invalid segment input.\n");
+        return 1;
+    }
+    if (start &lt; 0 || start &gt; n || count &lt; 0 || count &gt; n - start) {
+        printf("Segment is outside the array.\n");
+        return 1;
+    }
+
+    printf("Before: ");
+    print_array(a, n);
+    reverse_segment(a + start, count);
+    printf("After:  ");
+    print_array(a, n);
+    return 0;
+}</code></pre>
+<p>Supply input integers representable as <code>int</code>. No file input is needed. An array name converts to a pointer to its first element in most expressions, but the array itself is not a pointer variable.</p>
+<h3>4.4 Required Tests and Discussion</h3>
+<table>
+<thead><tr><th>Test</th><th>What to check</th></tr></thead>
+<tbody>
+<tr><td>Reverse the whole array</td><td>Both odd and even lengths work.</td></tr>
+<tr><td>Reverse an interior segment</td><td>Elements outside the segment remain unchanged.</td></tr>
+<tr><td>Reverse zero elements</td><td>No changes or invalid accesses; also try <code>start == n</code>.</td></tr>
+<tr><td>Reverse one element</td><td>The element is preserved.</td></tr>
+<tr><td>Include repeated values</td><td>No elements are lost or altered.</td></tr>
+<tr><td>Reverse the same segment twice</td><td>The original array is restored.</td></tr>
+<tr><td>Request an invalid segment</td><td>The supplied input checks reject it.</td></tr>
+</tbody></table>
+<p><b>Investigate the middle element:</b> In an odd-length segment, what if your loop calls the swap function once more when its two positions meet? Compare the repaired swap with the arithmetic swap, using small values to avoid overflow. Explain how a helper-function defect can affect a larger algorithm.</p>
+<p><b>Discuss:</b> How can this function modify part of the caller’s array without knowing the complete array length? Why must the caller supply a valid segment? Does reversing twice prove correctness by itself, or are other tests still necessary?</p>
+<p><b>Checkpoint:</b> Demonstrate the sample, an empty segment, and a one-element segment. Show that an interior reversal preserves the surrounding elements.</p>
+
+<h2>5. Investigation C: Equal Contents, Equal Addresses, and const</h2>
+<p>Use this setup:</p>
+<pre><code>char s1[] = "cat";
+char s2[] = "cat";
+
+char *p = s1;
+const char *q = s1;
+char *const r = s1;</code></pre>
+<p>Predict and test <code>s1 == s2</code> and <code>p == q</code>. These expressions compare addresses, not string contents. Then modify the first character through <code>p</code> and observe what you read through <code>q</code>.</p>
+<p>Treat each statement below as an <b>independent case</b>, starting from the original setup. Predict whether it is allowed, and identify whether it would change an address or a character. Compile one case at a time, recording any diagnostic; do not cast away <code>const</code>.</p>
+<table>
+<thead><tr><th>Statement</th><th>Allowed?</th><th>What would it change?</th></tr></thead>
+<tbody>
+<tr><td><code>p = s2;</code></td><td>&nbsp;</td><td>&nbsp;</td></tr>
+<tr><td><code>q = s2;</code></td><td>&nbsp;</td><td>&nbsp;</td></tr>
+<tr><td><code>*q = 'C';</code></td><td>&nbsp;</td><td>&nbsp;</td></tr>
+<tr><td><code>r = s2;</code></td><td>&nbsp;</td><td>&nbsp;</td></tr>
+<tr><td><code>*r = 'C';</code></td><td>&nbsp;</td><td>&nbsp;</td></tr>
+</tbody></table>
+<p><b>Discuss:</b> Does <code>const char *q</code> mean that the underlying character array can never change, or that characters cannot be changed through this pointer? How is it different from <code>char *const r</code>?</p>
+<p>Finally, compare the following pointers:</p>
+<pre><code>const char *u = "cat";
+const char *v = "cat";
+
+printf("%d\n", u == v);</code></pre>
+<p>Record the result, but do not treat it as a universal answer. Identical string literals may share storage or occupy different storage. Use content comparison, such as <code>strcmp()</code> from <code>&lt;string.h&gt;</code>, when you need to compare strings. Do not attempt to modify a string literal: that has undefined behavior, not a guaranteed runtime error.</p>
+
+<h2>6. Optional Extension: Mirror Two Rows</h2>
+<p>Use a small two-dimensional array:</p>
+<pre><code>int image[2][3] = {
+    {11, 12, 13},
+    {21, 22, 23}
+};</code></pre>
+<p>Predict how far <code>image + 1</code> advances compared with <code>image[0] + 1</code>. Print their addresses using <code>%p</code> and <code>(void *)</code>, and relate the results to the types of the pointed-to objects. Use <code>%d</code> when printing an integer element.</p>
+<p>Then reuse your function:</p>
+<pre><code>reverse_segment(image[0], 3);
+reverse_segment(image[1], 3);</code></pre>
+<p>The expected rows are <code>13 12 11</code> and <code>23 22 21</code>. Explain why you can reuse a one-dimensional segment operation on each row. Keep each reversal within its row; a two-dimensional array is not an <code>int **</code>.</p>
+
+<h2>7. What to Submit</h2>
+<ol>
+<li><b>C source:</b> your completed swap and segment-reversal program.</li>
+<li><b>Test notes:</b> your pointer-trace table, a counterexample to the arithmetic swap, the required reversal tests with expected and observed results, and the <code>const</code> statement classifications. Note any prediction you revised.</li>
+<li><b>Three short explanations:</b>
+<ul>
+<li>Why can passing the same address twice break the arithmetic swap even when equal values in two different objects do not?</li>
+<li>Why does copying or exchanging local pointer variables not copy or exchange the pointed-to data?</li>
+<li>Why can data observed through a pointer to <code>const</code> change in this lab even though writing through that pointer is disallowed?</li>
+</ul></li>
+</ol>
+<p>Optional extension work is welcome but is not needed to complete the core lab. Be prepared to explain your code and the pointer relationships during the lab check.</p>
+</main>
+</body>
+</html>
