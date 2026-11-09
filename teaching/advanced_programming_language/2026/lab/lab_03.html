@@ -52,7 +52,7 @@
 <p><b>File input is optional.</b> Complete the terminal-input version first. Students who have already studied file operations may add a file-input version; file handling is not needed to complete the required assignment.</p>
 <p>Store the same data in a text file named <code>array.txt</code>. Put the array length on the first line and the space-separated array elements on the second line, using the format shown above.</p>
 <figure>
-<img src="array_txt.jpg" alt="Example of a text file storing an array length and its elements.">
+<img src="figure/lab03_array_txt.jpg" alt="Example of a text file storing an array length and its elements.">
 <figcaption>Optional file-input example.</figcaption>
 </figure>
 <p>Both input methods should produce the same array and length. The sorting functions should not depend on how the data was read.</p>
@@ -76,7 +76,7 @@ void spaghetti_sort(int a[], int n);</code></pre>
 <h3>4.1 Idea</h3>
 <p>The familiar thought experiment of a monkey typing at random suggests that, given enough attempts, a meaningful text might eventually appear. Monkey sort, also known as bogosort, uses a similar idea: rearrange the array randomly and check whether it happens to be sorted.</p>
 <figure>
-<img src="monkey_sort.png" alt="Illustration of monkey sort.">
+<img src="figure/lab03_monkey_sort.png" alt="Illustration of monkey sort.">
 <figcaption>Monkey sort: rearrange and check.</figcaption>
 </figure>
 <p>This is deliberately inefficient. It is useful here for practicing functions, random numbers, and array operations, not as a practical sorting algorithm. A finite run is not guaranteed to succeed.</p>
@@ -104,20 +104,20 @@ srand(1);</code></pre>
 <h3>5.1 Idea</h3>
 <p>Imagine beads arranged on vertical rods, like an abacus. Each horizontal row represents one positive integer: the number of beads in that row is the integer’s value.</p>
 <figure>
-<img src="beads_before.png" alt="Beads arranged in rows on rods before falling.">
+<img src="figure/lab03_beads_before.png" alt="Beads arranged in rows on rods before falling.">
 <figcaption>Beads before gravity is applied.</figcaption>
 </figure>
 <p>If the beads can slide freely, gravity makes them fall to the bottom of each rod.</p>
 <figure>
-<img src="beads_after.png" alt="Beads settled at the bottoms of the rods.">
+<img src="figure/lab03_beads_after.png" alt="Beads settled at the bottoms of the rods.">
 <figcaption>Beads after gravity is applied.</figcaption>
 </figure>
 <p>After the beads settle, counting the beads in each row from top to bottom gives the original values in nondecreasing order. The following figures compare the row counts before and after the fall.</p>
 <div class="figures"><figure>
-<img src="row_counts_before.png" alt="Row counts before the beads fall.">
+<img src="figure/lab03_row_counts_before.png" alt="Row counts before the beads fall.">
 <figcaption>Row counts before the fall.</figcaption>
 </figure><figure>
-<img src="row_counts_after.png" alt="Row counts after the beads fall.">
+<img src="figure/lab03_row_counts_after.png" alt="Row counts after the beads fall.">
 <figcaption>Row counts after the fall.</figcaption>
 </figure></div>
 <h3>5.2 Programming Task</h3>
@@ -126,17 +126,17 @@ srand(1);</code></pre>
 <li>Represent input value <code>a[i]</code> by placing 1s in the first <code>a[i]</code> columns of row <code>i</code>. The remaining cells contain 0s.</li>
 </ol>
 <figure>
-<img src="beads_representation.png" alt="An integer array represented by a grid of zeros and ones.">
+<img src="figure/lab03_beads_representation.png" alt="An integer array represented by a grid of zeros and ones.">
 <figcaption>Represent each value as a row of beads.</figcaption>
 </figure>
 <p>Simulate gravity independently in each active column. Count the number of 1s, clear that column, and place the same number of 1s in its bottommost rows. Treat row 0 as the top and row <code>n - 1</code> as the bottom.</p>
 <figure>
-<img src="beads_gravity.png" alt="Ones moved to the bottom of each grid column.">
+<img src="figure/lab03_beads_gravity.png" alt="Ones moved to the bottom of each grid column.">
 <figcaption>Move the beads to the bottom of each column.</figcaption>
 </figure>
 <p>Finally, count the 1s in each row from top to bottom and write these counts back into the one-dimensional array.</p>
 <figure>
-<img src="row_counts_sorted.png" alt="Row sums converted back to a sorted one-dimensional array.">
+<img src="figure/lab03_row_counts_sorted.png" alt="Row sums converted back to a sorted one-dimensional array.">
 <figcaption>Read the sorted values from top to bottom.</figcaption>
 </figure>
 <p>Implement this procedure in <code>bead_sort()</code>. Do not replace it with another sorting algorithm. The positive-integer input restriction and maximum value of 20 keep the representation within the allocated array.</p>

@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab 5 — Arrays of Pointers and Pointers to Arrays</title>
+<style>
+body { margin: 8px; background: white; color: black; font-family: "Times New Roman", Times, serif; font-size: 16px; }
+main { max-width: 800px; padding: 0 3px; }
+h1 { font-size: 2em; }
+h2 { font-size: 1.5em; }
+h3 { font-size: 1.17em; }
+li { margin: 0.3em 0; }
+pre, code { font-family: "Courier New", Courier, monospace; }
+pre { margin: 0.75em 0 1em; white-space: pre-wrap; overflow-wrap: anywhere; }
+table { border-collapse: collapse; margin: 1em 0; width: 100%; }
+th, td { border: 1px solid #808080; padding: 7px; text-align: left; vertical-align: top; }
+th { background: #ffffcc; }
+.table-scroll { overflow-x: auto; }
+@media print { pre, tr { break-inside: avoid; } h2, h3 { break-after: avoid; } thead { display: table-header-group; } }
+
+figure { margin: 1em 0; }
+figure img { display: block; width: 100%; max-width: 100%; height: auto; }
+figcaption { margin-top: 8px; font-size: 0.95em; }
+details.visual-guide { margin: 1.25em 0; }
+summary { cursor: pointer; color: #0000ee; text-decoration: underline; }
+@media print { details.visual-guide > * { display: block !important; } figure { break-inside: avoid; } }
+</style>
+</head>
+<body><main>
+<h1>Lab 5: Arrays of Pointers and Pointers to Arrays</h1>
+<p><b>Theme:</b> Reordering Image Rows<br><b>Suggested duration:</b> 110 minutes</p>
+<p>To change the order of rows in an image, must we move its pixels, or can we rearrange pointers instead? In this lab, you will build two ways to access the same data, investigate how changes propagate through shared pointers, and create an independent copy.</p>
+
+<h2>1. Objectives and Workflow</h2>
+<ul>
+<li>Distinguish an array of pointers from a pointer to an array.</li>
+<li>Explain how the pointed-to type determines the step taken by pointer arithmetic.</li>
+<li>Pass two-dimensional arrays and arrays of row pointers to appropriate functions.</li>
+<li>Distinguish reordering addresses, modifying shared data, and copying elements.</li>
+<li>Check both parameter types and valid access ranges.</li>
+</ul>
+<p>Use C and fixed-size arrays. No dynamic allocation, file input, or image library is required. Represent grayscale values as integers from 0 to 255, with each row containing exactly four pixels. Begin with the supplied data; additional tests can use other fixed arrays.</p>
+<p><b>Predict first, observe second, explain third.</b> Preserve your original predictions in your notes. Use printed addresses or a debugger to check pointer relationships, not just the displayed image.</p>
+<table><thead><tr><th>Activity</th><th>Time</th></tr></thead><tbody>
+<tr><td>Declarations, addresses, and pointer steps</td><td>20 minutes</td></tr>
+<tr><td>Build a view using row pointers</td><td>20 minutes</td></tr>
+<tr><td>Reverse the view, investigate sharing, and make a copy</td><td>40 minutes</td></tr>
+<tr><td>Diagnose parameter and boundary mistakes</td><td>20 minutes</td></tr>
+<tr><td>Checks and discussion</td><td>10 minutes</td></tr>
+</tbody></table>
+<p>Sorting rows by average brightness is an optional extension. Complete the shared-data and independent-copy experiments first.</p>
+
+<h2>2. Investigation A: Same Starting Location, Different Steps</h2>
+<pre><code>int image[3][4] = {
+    {10, 20, 30, 40},
+    {90, 80, 70, 60},
+    {15, 25, 35, 45}
+};
+
+int *pixel = image[0];
+int (*row)[4] = image;
+int (*whole)[3][4] = &amp;image;</code></pre>
+<p>Copy and complete the table before running your code. Give sizes in terms of <code>sizeof(int)</code> first, then record the measured sizes on your machine.</p>
+<table><thead><tr><th>Pointer</th><th>Type of the pointed-to object</th><th>Size of that object</th><th>Where does adding 1 lead?</th></tr></thead><tbody>
+<tr><td><code>pixel</code></td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>
+<tr><td><code>row</code></td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>
+<tr><td><code>whole</code></td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>
+</tbody></table>
+<p>Print each pointer and the result of adding 1. Use <code>%p</code> with a conversion to <code>void *</code> for object-pointer addresses and <code>%zu</code> for sizes. For example:</p>
+<pre><code>printf(&quot;pixel = %p, pixel + 1 = %p\n&quot;,
+       (void *)pixel, (void *)(pixel + 1));
+printf(&quot;sizeof *pixel = %zu\n&quot;, sizeof *pixel);</code></pre>
+<p>Also inspect <code>sizeof *row</code> and <code>sizeof *whole</code>. Do not assume a fixed integer or pointer size. Address values can vary across runs.</p>
+<p><b>Discuss:</b> Why can these pointers identify the same starting location yet move by different amounts? Which of the three incremented pointers can be dereferenced here? A pointer just past an array or object may be formed for appropriate pointer arithmetic, but it must not be dereferenced.</p>
+<p>Now interpret these declarations in complete sentences:</p>
+<pre><code>int *rows[3];
+int (*p)[4];</code></pre>
+<p>Which declaration creates three pointer objects, and which creates one pointer object? Explain the role of the parentheses.</p>
+<p><b>Checkpoint:</b> Explain the difference between <code>sizeof row</code> and <code>sizeof *row</code>. One describes the pointer variable; the other describes the object type it points to.</p>
+
+<details class="visual-guide"><summary>Visual guide: Pointer steps: an int, a row, and the whole array (open after your prediction)</summary><figure><a href="figure/lab05_pointer_steps.png" target="_blank" rel="noopener"><img src="figure/lab05_pointer_steps.png" alt="Three memory strips show pixel + 1 advancing one integer, row + 1 advancing four integers, and whole + 1 reaching one past the complete array." width="1600" loading="lazy"></a><figcaption>Figure 1. Each strip represents the same array. Cell labels give row and column indices; widths are schematic. Select the image to view it at full size.</figcaption></figure></details>
+<h2>3. Investigation B: A View of the Image</h2>
+<p>A <b>row view</b> in this lab is an array storing the starting addresses of image rows. It does not contain a second copy of the pixels. Build one:</p>
+<pre><code>int *rows[3];
+for (int i = 0; i &lt; 3; i++) {
+    rows[i] = image[i];
+}</code></pre>
+<p>Implement <code>print_rows()</code> and compare its output with <code>print_image()</code>, which is provided in the starter program. Initially, both should show the same rows in the same order.</p>
+<p>Predict the effect of this change, then run it:</p>
+<pre><code>int *temp = rows[0];
+rows[0] = rows[2];
+rows[2] = temp;</code></pre>
+<ol>
+<li>Do the two printing functions still produce the same row order?</li>
+<li>Has the first row in the original <code>image</code> array changed?</li>
+<li>How many pixel values were copied during the swap?</li>
+<li>Which original element does <code>rows[0][1]</code> now identify?</li>
+</ol>
+<p><b>Checkpoint:</b> Draw the three row pointers before and after the exchange. Show only one set of original pixel data, and label each arrow with its position in <code>rows</code>.</p>
+
+<details class="visual-guide"><summary>Visual guide: Before and after reversing a row view (open after your prediction)</summary><figure><a href="figure/lab05_row_view.png" target="_blank" rel="noopener"><img src="figure/lab05_row_view.png" alt="Before reversal the three row pointers refer to image rows 0, 1, and 2; afterward they refer to rows 2, 1, and 0. Pixel storage is unchanged." width="1600" loading="lazy"></a><figcaption>Figure 2. Each panel is a snapshot, not a second copy of the pixels. Arrowheads identify the starts of the original rows. Select the image to view it at full size.</figcaption></figure></details>
+<h2>4. Main Task: Reorder, Share, and Copy</h2>
+<h3>4.1 Required Functions</h3>
+<pre><code>void print_image(int image[][4], int height);
+void print_rows(int *rows[], int height);
+void reverse_rows(int *rows[], int height);
+double row_mean(const int *row, int width);
+void copy_rows(int *rows[], int height, int out[][4]);</code></pre>
+<p>The starter supplies <code>print_image()</code>. Complete the other four functions. Except for <code>row_mean()</code>, the row width is fixed at four.</p>
+<ul>
+<li>For each nonempty view, the caller supplies <code>height</code> valid row pointers, each giving access to four writable integers in a row. The underlying arrays remain alive throughout all calls.</li>
+<li><code>height</code> is nonnegative. A height of zero means no rows are accessed; null-pointer handling is not required.</li>
+<li><code>row_mean()</code> receives a valid range of <code>width</code> elements within one row, with <code>width &gt; 0</code>. Use floating-point division.</li>
+<li><code>copy_rows()</code> receives a separate output array with at least <code>height</code> rows of four elements. Output storage must not overlap any source row.</li>
+</ul>
+<h3>4.2 Reverse the Row Order</h3>
+<p>Implement <code>reverse_rows()</code> by exchanging pointer values. Do not exchange individual pixels or allocate another image. Use a temporary variable of the appropriate pointer type inside the function.</p>
+<p>For the supplied image, the reversed view should be:</p>
+<pre>15 25 35 45
+90 80 70 60
+10 20 30 40</pre>
+<p>Printing <code>image</code> directly should still show its original order. Reversing the view twice should restore the original pointer order.</p>
+<p><b>Discuss:</b> In Lab 4, swapping only local pointer variables did not exchange the caller's integers. Why does assigning to <code>rows[i]</code> inside this function change the caller’s row-pointer array? Identify the actual objects being assigned to.</p>
+<h3>4.3 Modify Data through the View</h3>
+<p>Starting from the reversed view of the original sample, predict the effect of <code>rows[0][1] = 255;</code>. Record the exact <code>image[r][c]</code> location you expect to change. Then execute the statement and print both representations.</p>
+<p>Next, use fresh sample data and investigate two view entries that point to the same row:</p>
+<pre><code>/* Start with the original row order. */
+for (int i = 0; i &lt; 3; i++) {
+    rows[i] = image[i];
+}
+
+rows[1] = rows[0];
+rows[1][2] = 200;</code></pre>
+<p>Print the view and the original image. Which displayed rows change? Is this an invalid pointer access, or valid access to shared data? Is the view still a permutation containing each original row exactly once?</p>
+<p><b>Checkpoint:</b> Explain why distinct positions in the row-pointer array need not identify distinct pixel rows.</p>
+<h3>4.4 Create an Independent Copy</h3>
+<p>Restore the original one-pointer-per-row view, reverse it, and implement <code>copy_rows()</code>. Use nested loops to copy pixel values into <code>out</code> in the current view order.</p>
+<p>Immediately after copying, <code>out</code> should display the same values as the view. Change <code>out[0][0]</code> and check the original image. Then change a source pixel and check whether the copy changes.</p>
+<p>Do not attempt <code>out = image</code>: C arrays cannot be assigned this way. Copying row pointers into another pointer array would also not create independent pixel storage.</p>
+<table><thead><tr><th>Operation</th><th>Objects changed</th><th>Does it create independent pixel storage?</th></tr></thead><tbody>
+<tr><td>Exchange entries of <code>rows</code></td><td>&nbsp;</td><td>&nbsp;</td></tr>
+<tr><td>Assign to <code>rows[i][j]</code></td><td>&nbsp;</td><td>&nbsp;</td></tr>
+<tr><td>Copy pixel values into a separate <code>out</code> array</td><td>&nbsp;</td><td>&nbsp;</td></tr>
+</tbody></table>
+
+<details class="visual-guide"><summary>Visual guide: Shared pixels and an independent copy (open after your prediction)</summary><figure><a href="figure/lab05_alias_and_copy.png" target="_blank" rel="noopener"><img src="figure/lab05_alias_and_copy.png" alt="Two row pointers refer to image row 0. A separate output row was copied before a write. Writing 200 through rows[1][2] changes the source seen by both pointers, while the copied value remains 30." width="1600" loading="lazy"></a><figcaption>Figure 3. This small example copies one shared source row before changing it. The output row has separate storage; pointer aliases do not. Select the image to view it at full size.</figcaption></figure></details>
+<h2>5. Starter Program</h2>
+<p>The template compiles, but the unfinished functions do not yet implement the required behavior. Keep the initial sample unchanged for your first test; add fresh test arrays for subsequent experiments.</p>
+<pre><code>#include &lt;stdio.h&gt;
+
+#define WIDTH 4
+#define HEIGHT 3
+
+void print_image(int image[][WIDTH], int height)
+{
+    for (int i = 0; i &lt; height; i++) {
+        for (int j = 0; j &lt; WIDTH; j++) {
+            printf(&quot;%4d&quot;, image[i][j]);
+        }
+        printf(&quot;\n&quot;);
+    }
+}
+
+void print_rows(int *rows[], int height)
+{
+    /* TODO: Print each row through its stored pointer. */
+}
+
+void reverse_rows(int *rows[], int height)
+{
+    /* TODO: Reverse pointer order without changing any pixels. */
+}
+
+double row_mean(const int *row, int width)
+{
+    /* TODO: Return the mean using floating-point division. */
+    return 0.0;  /* Placeholder: replace this. */
+}
+
+void copy_rows(int *rows[], int height, int out[][WIDTH])
+{
+    /* TODO: Copy the pixel values in view order into out. */
+}
+
+int main(void)
+{
+    int image[HEIGHT][WIDTH] = {
+        {10, 20, 30, 40},
+        {90, 80, 70, 60},
+        {15, 25, 35, 45}
+    };
+    int *rows[HEIGHT];
+    int out[HEIGHT][WIDTH] = {0};
+
+    for (int i = 0; i &lt; HEIGHT; i++) {
+        rows[i] = image[i];
+    }
+
+    printf(&quot;Original image:\n&quot;);
+    print_image(image, HEIGHT);
+    printf(&quot;Initial view:\n&quot;);
+    print_rows(rows, HEIGHT);
+
+    reverse_rows(rows, HEIGHT);
+    printf(&quot;Reversed view:\n&quot;);
+    print_rows(rows, HEIGHT);
+    printf(&quot;Original storage after reordering:\n&quot;);
+    print_image(image, HEIGHT);
+
+    for (int i = 0; i &lt; HEIGHT; i++) {
+        printf(&quot;View row %d mean: %.2f\n&quot;,
+               i, row_mean(rows[i], WIDTH));
+    }
+
+    /* TODO: Predict, then test rows[0][1] = 255. */
+    /* Print both representations and identify the changed object. */
+
+    copy_rows(rows, HEIGHT, out);
+    printf(&quot;Independent copy:\n&quot;);
+    print_image(out, HEIGHT);
+
+    /* TODO: Modify out[0][0], then print out and image. */
+    /* Add the other tests from the lab using fresh data as needed. */
+    return 0;
+}</code></pre>
+<p>No keyboard input is necessary. You may add it as an extension after completing the required investigations.</p>
+
+<h2>6. Optional Extension: Order Rows by Mean Brightness</h2>
+<p>Use <code>row_mean()</code> to arrange the row view from highest mean to lowest. Exchange only pointers, leaving the original pixel storage unchanged. Rows with equal means may appear in either order; stable sorting is not required.</p>
+<p>For the original sample, the row means are 25, 75, and 30, so the view should reference original rows 1, 2, and 0, respectively. Use fresh values if earlier experiments modified pixels.</p>
+<pre><code>void sort_rows_by_mean(int *rows[], int height)
+{
+    for (int i = 0; i &lt; height - 1; i++) {
+        int best = i;
+        for (int j = i + 1; j &lt; height; j++) {
+            /* TODO: Update best if row j has a larger mean. */
+        }
+        /* TODO: Exchange rows[i] and rows[best] as pointers. */
+    }
+}</code></pre>
+<p>Test identical rows and two different rows with equal means, such as <code>{0, 0, 100, 100}</code> and <code>{50, 50, 50, 50}</code>. Explain why equal averages do not imply equal contents or equal addresses.</p>
+
+<h2>7. Investigation C: A Matching Type Is Not Enough</h2>
+<h3>7.1 Check the Access Range</h3>
+<p>Assume that <code>average()</code> reads <code>p[0]</code> through <code>p[n - 1]</code>. Classify each call below and justify the range it would read:</p>
+<pre><code>double average(int n, const int *p);
+
+int a[2][3] = {
+    {1, 2, 3},
+    {4, 5, 6}
+};
+
+average(3, a[0]);          /* A */
+average(2, &amp;a[0][1]);      /* B */
+average(3, &amp;a[0][1]);      /* C */</code></pre>
+<p>For each call, list the elements it is intended to access. Does every access remain within the row from which the pointer was obtained? Analyze any invalid case without executing it.</p>
+<p>Adjacent rows in a two-dimensional array occupy consecutive storage, but each row is still a separate array of elements. Do not assume that an <code>int *</code> into one row can be indexed across the row boundary merely because another row follows in memory. A pointer to the position just past a row cannot be dereferenced.</p>
+<details class="visual-guide"><summary>Visual guide: Two valid reads versus a read past a row (open after your prediction)</summary><figure><a href="figure/lab05_row_boundary.png" target="_blank" rel="noopener"><img src="figure/lab05_row_boundary.png" alt="A pointer starts at the second element of a three-element row. Two reads are valid; a third would dereference the one-past pointer. The next row does not extend the first row." width="1600" loading="lazy"></a><figcaption>Figure 4. The two row blocks are separated visually for clarity. Their storage is consecutive, but each row remains a separate array. Select the image to view it at full size.</figcaption></figure></details>
+<h3>7.2 Match the Representation to the Interface</h3>
+<pre><code>void process_matrix(int a[][4], int height);
+void process_rows(int *rows[], int height);
+
+/* image and rows are initialized as in the earlier activities. */
+process_matrix(image, 3);  /* A */
+process_rows(rows, 3);     /* B */
+process_matrix(rows, 3);   /* C */
+process_rows(image, 3);    /* D */</code></pre>
+<p>Identify which calls match the declared parameter types. For each mismatch, explain how the function expects to locate a row and what the supplied argument actually represents. Do not add casts to silence the diagnostic.</p>
+<p>In function parameters, <code>int a[][4]</code> is adjusted to <code>int (*a)[4]</code>, whereas <code>int *rows[]</code> is adjusted to <code>int **rows</code>. The former locates rows of four integers; the latter accesses stored pointer values. These are different representations.</p>
+<p><b>Discuss:</b> Why does a cast not create a table of row pointers inside an integer matrix? Likewise, casting a pointer into the middle of a row to a pointer-to-array type does not create a new array object there or make out-of-bounds indexing valid.</p>
+
+<h2>8. Tests, Checkpoints, and Submission</h2>
+<p>Test the following with fresh data where needed. All matrix tests retain a width of four; create separate fixed arrays for different heights.</p>
+<table><thead><tr><th>Test</th><th>Evidence to record</th></tr></thead><tbody>
+<tr><td>Odd and even row counts</td><td>The view reverses correctly while original pixels stay unchanged.</td></tr>
+<tr><td>One row; zero active rows</td><td>No unnecessary changes or invalid accesses. Use existing valid storage for the zero-height call.</td></tr>
+<tr><td>Reverse twice</td><td>The original view order returns. Also inspect the once-reversed result; a function that does nothing would pass only the twice-reversed check.</td></tr>
+<tr><td>Two equal-content rows</td><td>Distinguish their addresses from their equal values.</td></tr>
+<tr><td>Two entries referring to one row</td><td>A write through one entry is visible through the other.</td></tr>
+<tr><td>Copy into separate storage</td><td>Later writes to the copy and source do not propagate between them.</td></tr>
+<tr><td>Row means</td><td>Check known means, including a fractional result such as 0.25 for <code>{0, 0, 0, 1}</code>.</td></tr>
+</tbody></table>
+<p><b>Submit:</b></p>
+<ol>
+<li>Your C source with the four required functions completed. Mark any optional sorting work separately.</li>
+<li>A pointer diagram showing the row view before and after reordering, and brief expected-versus-observed test notes.</li>
+<li>Three pieces of evidence: pointer reordering preserves original pixels; a write through the view changes original pixels; a write to an independent copy does not.</li>
+<li>Your classifications for the access-range and function-call examples, plus a short explanation of why <code>int **</code> and <code>int (*)[4]</code> are not interchangeable.</li>
+</ol>
+<p>Be ready to identify where the pixels live, where the pointers live, and which objects each function modifies.</p>
+</main></body>
+</html>
